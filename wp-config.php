@@ -65,6 +65,8 @@ define( 'NONCE_SALT',       'reR<XlK3vo.T2A&3!MeP1!i1%a&r4VM+.bh`Wdk^d*Ou^y</$iU
  */
 $table_prefix = 'wp_';
 
+@ini_set('upload_max_size' , '256M' );
+
 /**
  * For developers: WordPress debugging mode.
  *
