@@ -1,0 +1,10 @@
+2021-04-29T05:26:40+00:00 CRITICAL Uncaught Error: Call to undefined function Elementor\get_field() in C:\wamp64\www\bipinsaha\wp-content\plugins\ryancv-plugin\elementor\widgets\portfolio.php:302
+Stack trace:
+#0 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\includes\base\controls-stack.php(1892): Elementor\RyanCV_Portfolio_Widget->render()
+#1 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\includes\base\widget-base.php(549): Elementor\Controls_Stack->render_by_mode()
+#2 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\includes\base\widget-base.php(662): Elementor\Widget_Base->render_content()
+#3 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\includes\base\element-base.php(736): Elementor\Widget_Base->get_raw_data(true)
+#4 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\includes\base\element-base.php(736): Elementor\Element_Base->get_raw_data(true)
+#5 C:\wamp64\www\bipinsaha\wp-content\plugins\elementor\core\base\document.php(817): Elementor\Element_Base->get_raw_data(true)
+#6 C:\wamp64\www\bipinsaha\wp-content\plugin in C:\wamp64\www\bipinsaha\wp-content\plugins\ryancv-plugin\elementor\widgets\portfolio.php on line 302
+
