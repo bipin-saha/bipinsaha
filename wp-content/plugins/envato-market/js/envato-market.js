@@ -12,38 +12,25 @@
     cache: {},
 
     init: function() {
-      this.cacheElements();
       this.bindEvents();
-    },
-
-    cacheElements: function() {
-      this.cache = {
-        $window: $( window ),
-        $document: $( document )
-      };
     },
 
     bindEvents: function() {
       var self = this;
 
-      self.cache.$window.on( 'resize', $.proxy( self.tbPosition, self ) );
+      self.addItem();
+      self.removeItem();
+      self.tabbedNav();
 
-      self.cache.$document.on( 'ready', function() {
-        self.addItem();
-        self.removeItem();
-        self.tabbedNav();
-
-        $( '.envato-card' ).on( 'click', 'a.thickbox', function() {
-          tb_click.call( this );
-          $( '#TB_title' ).css({ 'background-color': '#23282d', 'color': '#cfcfcf' });
-          self.cache.$window.trigger( 'resize' );
-          return false;
-        });
+      $( document ).on( 'click', '.envato-card a.thickbox', function() {
+        tb_click.call( this );
+        $( '#TB_title' ).css({ 'background-color': '#23282d', 'color': '#cfcfcf' });
+        return false;
       });
     },
 
     addItem: function() {
-      $( '.add-envato-market-item' ).on( 'click', function( event ) {
+      $( document ).on( 'click', '.add-envato-market-item', function( event ) {
         var id = 'envato-market-dialog-form';
         event.preventDefault();
 
@@ -130,7 +117,7 @@
     },
 
     removeItem: function() {
-      $( '#envato-market-items' ).on( 'click', '.item-delete', function( event ) {
+      $( document ).on( 'click', '#envato-market-items .item-delete', function( event ) {
         var self = this, id = 'envato-market-dialog-remove';
         event.preventDefault();
 
@@ -216,21 +203,11 @@
       // Hide all panels
       $( 'div.panel', $wrap ).hide();
 
-      this.cache.$window.on( 'load', function() {
-        var tab = self.getParameterByName( 'tab' ),
-          hashTab = window.location.hash.substr( 1 );
-
-        if ( tab ) {
-          $( '.nav-tab-wrapper a[href="#' + tab + '"]', $wrap ).click();
-        } else if ( hashTab ) {
-          $( '.nav-tab-wrapper a[href="#' + hashTab + '"]', $wrap ).click();
-        } else {
-          $( 'div.panel:not(.hidden)', $wrap ).first().show();
-        }
-      });
+      var tab = self.getParameterByName( 'tab' ),
+        hashTab = window.location.hash.substr( 1 );
 
       // Listen for the click event.
-      $( '.nav-tab-wrapper a', $wrap ).on( 'click', function() {
+      $( document, $wrap ).on( 'click', '.nav-tab-wrapper a', function() {
 
         // Deactivate and hide all tabs & panels.
         $( '.nav-tab-wrapper a', $wrap ).removeClass( 'nav-tab-active' );
@@ -240,8 +217,19 @@
         $( this ).addClass( 'nav-tab-active' );
         $( 'div' + $( this ).attr( 'href' ), $wrap ).show();
 
+        self.maybeLoadhealthcheck();
+
         return false;
       });
+
+      if ( tab ) {
+        $( '.nav-tab-wrapper a[href="#' + tab + '"]', $wrap ).click();
+      } else if ( hashTab ) {
+        $( '.nav-tab-wrapper a[href="#' + hashTab + '"]', $wrap ).click();
+      } else {
+        $( 'div.panel:not(.hidden)', $wrap ).first().show();
+      }
+
     },
 
     getParameterByName: function( name ) {
@@ -252,46 +240,48 @@
       return null === results ? '' : decodeURIComponent( results[1].replace( /\+/g, ' ' ) );
     },
 
-    tbPosition: function() {
-      var $tbWindow = $( '#TB_window' ),
-        $tbFrame = $( '#TB_iframeContent' ),
-        windowWidth = this.cache.$window.width(),
-        newHeight = this.cache.$window.height() - ( ( 792 < windowWidth ) ? 90 : 50 ),
-        newWidth = ( 792 < windowWidth ) ? 772 : windowWidth - 20;
+    maybeLoadhealthcheck: function() {
+      // We only load the health check ajax call when the envato-market-healthcheck div is visible on the page.
+      var $healthCheckOutput = $( '.envato-market-healthcheck' );
+      if( $healthCheckOutput.is( ':visible') ) {
+        $healthCheckOutput.text('Loading...');
 
-      if ( $tbWindow.size() ) {
-        $tbWindow
-          .width( newWidth )
-          .height( newHeight )
-          .css({ 'margin-left': '-' + parseInt( ( newWidth / 2 ), 10 ) + 'px' });
+        // Use our existing wp.ajax.post pattern from above to call the healthcheck API endpoint
+        var request = wp.ajax.post( _envatoMarket.action + '_healthcheck', {
+          nonce: _envatoMarket.nonce
+        });
 
-        $tbFrame.width( newWidth ).height( newHeight );
+        request.done(function( response ) {
+          if( response && response.limits ) {
+            var $healthCheckUL = $( '<ul></ul>' );
+            var limits = Object.keys( response.limits );
+            for( var i = 0; i < limits.length; i++ ) {
+              var $healthCheckLI = $( '<li></li>' );
+              var healthCheckItem = response.limits[limits[i]];
+              $healthCheckLI.addClass( healthCheckItem.ok ? 'healthcheck-ok' : 'healthcheck-error' );
+              $healthCheckLI.attr( 'data-limit', limits[i] );
+              $healthCheckLI.append( '<span class="healthcheck-item-title">' + healthCheckItem.title + '</span>' );
+              $healthCheckLI.append( '<span class="healthcheck-item-message">' + healthCheckItem.message + '</span>' );
+              $healthCheckUL.append( $healthCheckLI );
+            }
+            $healthCheckOutput.html( $healthCheckUL );
+          }else{
+            window.console.log( response );
+            $healthCheckOutput.text('Health check failed to load. Please check console for errors.');
+          }
+        });
 
-        if ( 'undefined' !== typeof document.body.style.maxWidth ) {
-          $tbWindow.css({
-            'top': ( 792 < windowWidth ? 30 : 10 ) + 'px',
-            'margin-top': '0'
-          });
-        }
+        request.fail(function( response ) {
+          window.console.log( response );
+          $healthCheckOutput.text('Health check failed to load. Please check console for errors.');
+        });
       }
-
-      return $( 'a.thickbox' ).each(function() {
-        var href = $( this ).attr( 'href' );
-
-        if ( ! href ) {
-          return;
-        }
-
-        href = href.replace( /&width=[0-9]+/g, '' );
-        href = href.replace( /&height=[0-9]+/g, '' );
-        href = href + '&width=' + newWidth + '&height=' + newHeight;
-
-        $( this ).attr( 'href', href );
-      });
     }
 
   };
 
-  envatoMarket.init();
+  $( window ).on('load', function() {
+    envatoMarket.init();
+  });
 
 })( jQuery );
